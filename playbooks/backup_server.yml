@@ -1,0 +1,48 @@
+- name: Configurar servidor de respaldo
+  hosts: backupserver
+  become: yes
+  vars:
+    backup_user: "backupuser"
+    backup_password: "queso123"
+    backup_path: "/respaldos"
+    db_user: "usuario_bd"
+    db_password: "password_bd"
+    db_name: "nombre_bd"
+
+  tasks:
+    - name: Crear usuario de respaldo
+      user:
+        name: "{{ backup_user }}"
+        shell: /bin/bash
+        create_home: yes
+        password: "{{ backup_password | password_hash('sha512') }}"
+
+    - name: Crear directorio de respaldos
+      file:
+        path: "{{ backup_path }}"
+        state: directory
+        owner: "{{ backup_user }}"
+        group: "{{ backup_user }}"
+        mode: '0750'
+
+    - name: Copiar script de respaldo
+      template:
+        src: ../templates/backup_script.sh.j2
+        dest: /usr/local/bin/backup_databases.sh
+        mode: '0755'
+
+    - name: Configurar tarea de respaldo
+      cron:
+        name: "database_backup"
+        user: "{{ backup_user }}"
+        hour: "3"
+        minute: "0"
+        job: "/usr/local/bin/backup_databases.sh"
+
+    - name: Configurar rotación de respaldos
+      cron:
+        name: "cleanup_old_backups"
+        user: "{{ backup_user }}"
+        hour: "4"
+        minute: "0"
+        job: "find {{ backup_path }} -type f -mtime +{{ retention_days }} -delete"

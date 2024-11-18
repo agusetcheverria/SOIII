@@ -1,0 +1,57 @@
+# Variables de sistema
+timezone: America/Montevideo
+locale: "es_MX.UTF-8"
+
+# Variables de seguridad
+ssh_port: 22222
+allowed_ips: 
+  - "192.168.1.7"
+  - "192.168.1.8"
+
+# Variables de usuarios
+admin_user: administrador
+backup_user: administrador
+admin_group: administrador
+
+# Variables de MySQL
+mysql_root_password: "{{ vault_mysql_root_password }}"
+mysql_app_user: phpapp
+mysql_app_password: "{{ vault_mysql_app_password }}"
+
+mysql_databases:
+  - name: webappdb
+    encoding: utf8mb4
+    collation: utf8mb4_unicode_ci
+
+mysql_users:
+  - name: webappuser
+    host: localhost
+    password: "{{ vault_mysql_user_password }}"
+    priv: "webappdb.*:ALL"
+
+# Variables de aplicación
+app_path: /var/www/html
+backup_path: /backup
+retention_days: 7
+
+# Variables de PHP
+php_version: "8.1"
+php_modules:
+  - php{{ php_version }}
+  - php{{ php_version }}-mysql
+  - php{{ php_version }}-curl
+  - php{{ php_version }}-gd
+  - php{{ php_version }}-mbstring
+  - php{{ php_version }}-xml
+  - php{{ php_version }}-zip
+
+# Variables de Apache
+apache_vhosts:
+  - name: app1
+    domain: app1.local
+    port: 80
+    docroot: "{{ app_path }}/app1"
+  - name: app2
+    domain: app2.local
+    port: 80
+    docroot: "{{ app_path }}/app2"

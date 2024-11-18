@@ -1,0 +1,13 @@
+<VirtualHost *:{{ item.port }}>
+    ServerAdmin webmaster@{{ item.domain }}
+    ServerName {{ item.domain }}
+    DocumentRoot {{ item.docroot }}
+
+    <Directory {{ item.docroot }}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/{{ item.name }}-error.log
+    CustomLog ${APACHE_LOG_DIR}/{{ item.name }}-access.log combined
+</VirtualHost>

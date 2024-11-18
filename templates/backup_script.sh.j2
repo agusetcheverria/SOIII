@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Configuración
+BACKUP_DIR="{{ backup_path }}"
+DB_USER="{{ db_user }}"
+DB_PASS="{{ db_password }}"
+DB_NAME="{{ db_name }}"
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+
+# Crear directorio de respaldo si no existe
+mkdir -p $BACKUP_DIR
+
+# Realizar el respaldo de la base de datos
+mysqldump -u $DB_USER -p$DB_PASS $DB_NAME > $BACKUP_DIR/db_backup_$DATE.sql
+
+# Verificar si el respaldo fue exitoso
+if [ $? -eq 0 ]; then
+  echo "Respaldo de base de datos completado exitosamente."
+else
+  echo "Error durante el respaldo de base de datos."
+fi
+

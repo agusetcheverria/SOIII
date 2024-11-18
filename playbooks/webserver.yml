@@ -1,0 +1,104 @@
+- name: Configurar servidor web
+  hosts: webserver
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+    virtual_hosts:
+      - name: app1
+        domain: app1.local
+        port: 80
+        docroot: /var/www/html/app1
+      - name: app2
+        domain: app2.local
+        port: 80
+        docroot: /var/www/html/app2
+
+  vars_files:
+    - ../group_vars/vault.yml
+
+  tasks:
+
+    - name: Reiniciar SSH
+      systemd:
+        state: restarted
+        name: sshd
+        enabled: yes
+
+    - name: Configurar virtual hosts
+      template:
+        src: ../templates/vhost.conf.j2
+        dest: "/etc/apache2/sites-available/{{ item.name }}.conf"
+        owner: root
+        group: root
+        mode: '0644'
+      with_items: "{{ virtual_hosts }}"
+
+    - name: Instalar python3-pymysql
+      apt:
+        name:
+          - python3-pymysql
+          - python3-mysqldb
+        state: present
+        update_cache: yes
+
+    - name: Añadir repositorio PHP
+      apt_repository:
+        repo: ppa:ondrej/php
+        state: present
+
+    - name: Instalar Apache y PHP
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop: "{{ php_modules }}"
+
+    - name: Asegurar que Apache está iniciado
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Crear directorios para aplicaciones
+      file:
+        path: "{{ item.docroot }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+      loop: "{{ apache_vhosts }}"
+
+    - name: Crear directorios DocumentRoot
+      file:
+        path: "{{ item.docroot }}"
+        state: directory
+        mode: '0755'
+      with_items: "{{ virtual_hosts }}"
+
+    - name: Crear archivo index.php de prueba
+      copy:
+        content: |
+          <?php
+          phpinfo();
+          ?>
+        dest: "{{ item.docroot }}/index.php"
+      with_items: "{{ virtual_hosts }}"
+
+    - name: Configurar virtual hosts
+      template:
+        src: ../templates/vhost.conf.j2
+        dest: "/etc/apache2/sites-available/{{ item.name }}.conf"
+      loop: "{{ apache_vhosts }}"
+      notify: reload apache
+
+    - name: Habilitar virtual hosts
+      command: "a2ensite {{ item.name }}"
+      loop: "{{ apache_vhosts }}"
+      notify: reload apache
+
+  handlers:
+    - name: reload apache
+      service:
+        name: apache2
+        state: reloaded
